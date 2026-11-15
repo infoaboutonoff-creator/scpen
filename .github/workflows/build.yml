@@ -55,8 +55,23 @@ jobs:
               namespace = "com.example.screenpen"
               compileSdk = 34
 
+              signingConfigs {
+                  create("rel") {
+                      storeFile = file("../rel.jks")
+                      storePassword = "android123"
+                      keyAlias = "key0"
+                      keyPassword = "android123"
+                  }
+              }
+              buildTypes {
+                  release {
+                      signingConfig = signingConfigs.getByName("rel")
+                      isMinifyEnabled = false
+                  }
+              }
+
               defaultConfig {
-                  applicationId = "com.example.screenpen"
+                  applicationId = "com.abcstudy.screenpen"
                   minSdk = 26
                   targetSdk = 34
                   versionCode = 1
@@ -585,10 +600,20 @@ jobs:
               }
           }
           EOF
-      - name: Build APK
+      - name: Make signing key
+        run: keytool -genkeypair -keystore ScreenPen/rel.jks -alias key0 -keyalg RSA -keysize 2048 -validity 10000 -storepass android123 -keypass android123 -dname "CN=ScreenPen"
+      - name: Build release APK
+        working-directory: ScreenPen
+        run: gradle assembleRelease --no-daemon
+      - name: Build debug APK
+        continue-on-error: true
         working-directory: ScreenPen
         run: gradle assembleDebug --no-daemon
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ScreenPen-APK
-          path: ScreenPen/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+          path: |
+            ScreenPen/app/build/outputs/apk/release/app-release.apk
+            ScreenPen/app/build/outputs/apk/debug/app-debug.apk
